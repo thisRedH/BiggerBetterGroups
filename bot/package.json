@@ -1,0 +1,20 @@
+{
+  "name": "bbg-bot",
+  "version": "0.1.0",
+  "description": "BiggerBetterGroups",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "keywords": [
+    "whatsapp"
+  ],
+  "author": "thisRedH",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "express": "^4.18.2",
+    "whatsapp-web.js": "^1.23.0",
+    "winston": "^3.11.0"
+  }
+}
