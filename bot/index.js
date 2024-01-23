@@ -16,6 +16,8 @@ const client = new Client({
     },
 });
 
+logger.info("Warming up, this might take between 30 seconds to 2 minutes.");
+
 client.initialize();
 clientAddEvents(client);
 
