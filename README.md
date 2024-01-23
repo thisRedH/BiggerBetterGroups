@@ -13,7 +13,7 @@ Note: As statet by [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web
 
 ## License
 
-This software is licensed under the [Apache-2.0](https://choosealicense.com/licenses/apache-2.0/) License.
+This software is licensed under the [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) License.
 
 ## Disclaimer
 
