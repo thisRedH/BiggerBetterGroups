@@ -3,8 +3,6 @@
 const { Client, LocalAuth, MessageTypes } = require("whatsapp-web.js");
 const { clientAddEvents } = require("./event_handler.js");
 
-const GROUP_IDS = ["YOURID1", "YOURID2", "YOURID3"];
-
 logger.info("Starting...");
 
 const client = new Client({

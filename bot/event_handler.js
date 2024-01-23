@@ -3,9 +3,13 @@
 const { MessageTypes } = require("whatsapp-web.js");
 const { loggerMsg, Logger } = require("./logger.js");
 
+const GROUP_IDS = ["YOURID1", "YOURID2", "YOURID3"];
+
+var clientChats = null;
+
 function clientAddEvents(client) {
     client.on("loading_screen", (percent, message) => {
-        logger.info(`loading screen: ${percent}% ${message}`);
+        logger.info(`Loading screen: ${percent}% ${message}`);
     });
 
     client.on("qr", (qr) => {
@@ -21,14 +25,24 @@ function clientAddEvents(client) {
         logger.error(`Authentication Failure! (${msg})`);
     });
 
-    client.on("ready", () => {
+    client.on("ready", async () => {
+        logger.info("Bot initialized");
+
+        logger.info("Getting chats");
+        clientChats = await client.getChats();
+        
+        logger.info("All chats:");
+        clientChats.forEach(chat => {
+            logger.info(`\t${chat.name} - ${chat.id.user}@${chat.id.server}`);
+        });
+
+        logger.info("Forwarding chats:");
+        clientChats.forEach(chat => {
+            if (!GROUP_IDS.includes(`${chat.id.user}@${chat.id.server}`)) return;
+            logger.info(`\t${chat.name} - ${chat.id.user}@${chat.id.server}`);
+        });
+
         logger.info("Bot is ready");
-        client.getChats().then(chats => {
-            logger.info("Chat list:");
-            chats.forEach(chat => {
-                logger.info(`\t${chat.id.server} - ${chat.name} - ${chat.id.user}@${chat.id.server}`);
-            });
-        })
     });
 
     client.on("message", async msg => {
@@ -36,7 +50,9 @@ function clientAddEvents(client) {
         const userName = (await msg.getContact()).pushname;
         const chatName = chat.name;
 
-        loggerMsg.info(`from ${userName} in ${chatName}: ${msg.body}`);
+        loggerMsg.info(`From "${userName}" in "${chatName}": ${msg.body} (${msg.type})`);
+        await chat.sendSeen();
+
         if (!GROUP_IDS.includes(`${chat.id.user}@${chat.id.server}`)) return;
         if (msg.type !== MessageTypes.TEXT) return;
 
@@ -46,7 +62,7 @@ function clientAddEvents(client) {
                     `${group_id}`,
                     `${userName} (${chatName}):\n${msg.body}`
                 );
-                loggerMsg.info(`to ${group_id}:${msg_out.body.replace(/(?:\r\n|\r|\n)/g, '\\n')}`);
+                loggerMsg.info(`To "${userName}": ${msg_out.body.replace(/(?:\r\n|\r|\n)/g, '\\n')}`);
             }
         });
     });
