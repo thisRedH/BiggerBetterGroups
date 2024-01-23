@@ -10,6 +10,7 @@ function clientAddEvents(client) {
 
     client.on("qr", (qr) => {
         logger.info(`QR received: ${qr}`);
+        //TODO: create a QR code png
     });
 
     client.on("authenticated", () => {
