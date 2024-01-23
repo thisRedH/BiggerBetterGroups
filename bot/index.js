@@ -1,18 +1,16 @@
 // Licensing information can be found at the end of this file.
 
-const { Client, LocalAuth, MessageTypes } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageTypes } = require("whatsapp-web.js");
+const { clientAddEvents } = require("./event_handler.js");
 
-const { loggerMsg, Logger } = require('./logger.js');
-const { clientAddEvents } = require('./event_handler.js');
-
-const GROUP_IDS = ['YOURID1', 'YOURID2', 'YOURID3'];
+const GROUP_IDS = ["YOURID1", "YOURID2", "YOURID3"];
 
 logger.info("Starting...");
 
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        args: ['--no-sandbox'],
+        args: ["--no-sandbox"],
     },
 });
 

@@ -1,7 +1,7 @@
 // Licensing information can be found at the end of this file.
 
-const winston = require('winston');
-require('winston-daily-rotate-file');
+const winston = require("winston");
+require("winston-daily-rotate-file");
 
 const fmt = winston.format.combine(
     //winston.format.colorize({ level: true }), // Dosn't seem to work. Breaks the console output?
@@ -20,21 +20,21 @@ const fmtFile = winston.format.combine(
 
 
 const rotatingFileGL = new winston.transports.DailyRotateFile({
-    level: 'info',
-    filename: 'bot-%DATE%.log',
-    dirname: './logs',
+    level: "info",
+    filename: "bot-%DATE%.log",
+    dirname: "./logs",
     zippedArchive: true,
-    maxSize: '2m',
-    maxFiles: '16d',
+    maxSize: "2m",
+    maxFiles: "16d",
     format: winston.format.combine(fmtFile),
 });
 
 const loggerGL = winston.createLogger({
-    level: 'info',
+    level: "info",
     transports: [
         new winston.transports.Console({
             format: winston.format.combine(
-                winston.format.label({ label: 'global' }),
+                winston.format.label({ label: "global" }),
                 fmt,
             ),
         }),
@@ -44,21 +44,21 @@ const loggerGL = winston.createLogger({
 
 
 const rotatingFileMsg = new winston.transports.DailyRotateFile({
-    level: 'info',
-    filename: 'msg-%DATE%.log',
-    dirname: './logs',
+    level: "info",
+    filename: "msg-%DATE%.log",
+    dirname: "./logs",
     zippedArchive: true,
-    maxSize: '5m',
-    maxFiles: '32d',
+    maxSize: "5m",
+    maxFiles: "32d",
     format: winston.format.combine(fmtFile),
 });
 
 const loggerMsg = winston.createLogger({
-    level: 'info',
+    level: "info",
     transports: [
         new winston.transports.Console({
             format: winston.format.combine(
-                winston.format.label({ label: 'message' }),
+                winston.format.label({ label: "message" }),
                 fmt,
             ),
         }),

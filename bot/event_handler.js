@@ -1,33 +1,36 @@
 // Licensing information can be found at the end of this file.
 
+const { MessageTypes } = require("whatsapp-web.js");
+const { loggerMsg, Logger } = require("./logger.js");
+
 function clientAddEvents(client) {
-    client.on('loading_screen', (percent, message) => {
+    client.on("loading_screen", (percent, message) => {
         logger.info(`loading screen: ${percent}% ${message}`);
     });
 
-    client.on('qr', (qr) => {
+    client.on("qr", (qr) => {
         logger.info(`QR received: ${qr}`);
     });
 
-    client.on('authenticated', () => {
-        logger.info('Authenticated successfully!');
+    client.on("authenticated", () => {
+        logger.info("Authenticated successfully!");
     });
 
-    client.on('auth_failure', msg => {
+    client.on("auth_failure", msg => {
         logger.error(`Authentication Failure! (${msg})`);
     });
 
-    client.on('ready', () => {
-        logger.info('Bot is ready');
+    client.on("ready", () => {
+        logger.info("Bot is ready");
         client.getChats().then(chats => {
-            logger.info('Chat list:');
+            logger.info("Chat list:");
             chats.forEach(chat => {
                 logger.info(`\t${chat.id.server} - ${chat.name} - ${chat.id.user}@${chat.id.server}`);
             });
         })
     });
 
-    client.on('message', async msg => {
+    client.on("message", async msg => {
         const chat = await msg.getChat();
         const userName = (await msg.getContact()).pushname;
         const chatName = chat.name;
@@ -47,7 +50,7 @@ function clientAddEvents(client) {
         });
     });
 
-    client.on('message_revoke_everyone', async (after, before) => {
+    client.on("message_revoke_everyone", async (after, before) => {
         // Fired whenever a message is deleted by anyone (including you)
         logger.debug(after); // message after it was deleted.
         if (before) {
@@ -55,29 +58,29 @@ function clientAddEvents(client) {
         }
     });
 
-    client.on('group_join', (notification) => {
+    client.on("group_join", (notification) => {
     });
 
-    client.on('group_leave', (notification) => {
+    client.on("group_leave", (notification) => {
     });
 
-    client.on('change_state', state => {
+    client.on("change_state", state => {
     });
 
-    client.on('call', async (call) => {
+    client.on("call", async (call) => {
         logger.info(
-            `Call received from: ${call.from}, type: ${call.isGroup ? 'group' : ''} ${call.isVideo ? 'video' : 'audio'}`
+            `Call received from: ${call.from}, type: ${call.isGroup ? "group" : ""} ${call.isVideo ? "video" : "audio"}`
         );
 
         await call.reject();
-        logger.info('Call rejected by Bot');
+        logger.info("Call rejected by Bot");
         await client.sendMessage(
             call.from,
-            'Sorry, but your call was automatically rejected.'
+            "Sorry, but your call was automatically rejected."
         )
     });
 
-    client.on('disconnected', (reason) => {
+    client.on("disconnected", (reason) => {
         Logger.error(`Client was logged out! Reason: ${reason}`);
     });    
 }
