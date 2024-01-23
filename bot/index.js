@@ -1,41 +1,9 @@
 // Licensing information can be found at the end of this file.
 
-const { createLogger, format, transports, Logger } = require('winston');
+const { loggerMsg, Logger } = require('./logger.js');
 const { Client, LocalAuth, MessageTypes } = require('whatsapp-web.js');
 
 const GROUP_IDS = ['YOURID1', 'YOURID2', 'YOURID3'];
-
-const customFormat = format.combine(
-    format.timestamp({
-        format:"YY-MM-DD HH:mm:ss"
-    }),
-    format.printf(info =>
-        `[${info.timestamp}] [${info.level.toUpperCase()}]: ${info.message}`
-    ),
-    format.colorize({all:false}),
-);
-
-const logger = createLogger({
-    level: 'debug',
-    format: format.combine(
-        customFormat
-    ),
-    transports: [
-        new transports.Console(),
-        new transports.File({ filename: 'logfile.log' })
-    ]
-});
-
-const msgLogger = createLogger({
-    level: 'info',
-    format: format.combine(
-        customFormat
-    ),
-    transports: [
-        new transports.Console(),
-        new transports.File({ filename: 'msg.log' })
-    ]
-});
 
 logger.info("Starting...");
 
@@ -70,9 +38,9 @@ client.on('auth_failure', msg => {
 client.on('ready', () => {
     logger.info('Bot is ready');
     client.getChats().then(chats => {
-        logger.debug('Chat list:');
+        logger.info('Chat list:');
         chats.forEach(chat => {
-            logger.debug(`${chat.id.server} - ${chat.name} - ${chat.id.user}@${chat.id.server}`);
+            logger.info(`\t${chat.id.server} - ${chat.name} - ${chat.id.user}@${chat.id.server}`);
         });
     })
 });
@@ -82,7 +50,7 @@ client.on('message', async msg => {
     const userName = (await msg.getContact()).pushname;
     const chatName = chat.name;
     
-    msgLogger.info(`[MSG In] ${userName} in ${chatName}: ${msg.body}`);
+    loggerMsg.info(`from ${userName} in ${chatName}: ${msg.body}`);
     if (!GROUP_IDS.includes(`${chat.id.user}@${chat.id.server}`)) return;
     if (msg.type !== MessageTypes.TEXT) return;
 
@@ -92,7 +60,7 @@ client.on('message', async msg => {
                 `${group_id}`,
                 `${userName} (${chatName}):\n${msg.body}`
             );
-            msgLogger.info(`[MSG Out] ${msg_out.body.replace(/(?:\r\n|\r|\n)/g, '\\n')}`);
+            loggerMsg.info(`to ${group_id}:${msg_out.body.replace(/(?:\r\n|\r|\n)/g, '\\n')}`);
         }
     });
 });
