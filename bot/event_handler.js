@@ -4,8 +4,8 @@ const sha256 = require('sha256');
 const { MessageTypes } = require("whatsapp-web.js");
 const { loggerMsg, Logger } = require("./logger.js");
 
-//const GROUP_IDS = ["YOURID1", "YOURID2", "YOURID3"];
-const GROUP_IDS = ["120363221942837930@g.us", "120363221441263336@g.us", "120363222515376602@g.us"];
+const GROUP_IDS = ["YOURID1", "YOURID2", "YOURID3"];
+
 const ALLOWED_MEDIA_TYPES = [
     MessageTypes.TEXT,
     MessageTypes.AUDIO,
