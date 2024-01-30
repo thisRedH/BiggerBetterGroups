@@ -1,13 +1,57 @@
 // Licensing information can be found at the end of this file.
 
+const sha256 = require('sha256');
 const { MessageTypes } = require("whatsapp-web.js");
 const { loggerMsg, Logger } = require("./logger.js");
 
-const GROUP_IDS = ["YOURID1", "YOURID2", "YOURID3"];
+//const GROUP_IDS = ["YOURID1", "YOURID2", "YOURID3"];
+const GROUP_IDS = ["120363221942837930@g.us", "120363221441263336@g.us", "120363222515376602@g.us"];
+const ALLOWED_MEDIA_TYPES = [
+    MessageTypes.TEXT,
+    MessageTypes.AUDIO,
+    MessageTypes.VOICE,
+    MessageTypes.IMAGE,
+    MessageTypes.VIDEO,
+    MessageTypes.DOCUMENT,
+];
 
+var msgHistory = [];
 var clientChats = null;
 
-function clientAddEvents(client) {
+function getMsgHash(msg, salt = "") {
+    const strings = [
+        msg.timestamp.toString(),
+        msg.body,
+        msg.type,
+        msg.author,
+        msg.from,
+        msg.to,
+    ];
+    const hash = sha256(strings.join(salt));
+    return hash;
+}
+
+function findMsgs(msgHistory, msg) {
+    for (let i = 0; i < msgHistory.length; i++) {
+        for (let j = 0; j < msgHistory[i].length; j++) {
+            if (getMsgHash(msgHistory[i][j]) === getMsgHash(msg)) {
+                return msgHistory[i];
+            }
+        }
+    }
+}
+
+function clientRegisterEvents(client) {
+    logger.info("Registering Client Events...");
+
+    _clientRegisterMisc(client);
+    _clientRegisterCallReject(client);
+
+    if (true)                                   //TODO: Load from config if to activate this
+        _clientRegisterExtendedGroups(client);
+}
+
+function _clientRegisterMisc(client) {
     client.on("loading_screen", (percent, message) => {
         logger.info(`Loading screen: ${percent}% ${message}`);
     });
@@ -45,36 +89,6 @@ function clientAddEvents(client) {
         logger.info("Bot is ready");
     });
 
-    client.on("message", async msg => {
-        const chat = await msg.getChat();
-        const userName = (await msg.getContact()).pushname;
-        const chatName = chat.name;
-
-        loggerMsg.info(`From "${userName}" in "${chatName}": ${msg.body} (${msg.type})`);
-        await chat.sendSeen();
-
-        if (!GROUP_IDS.includes(`${chat.id.user}@${chat.id.server}`)) return;
-        if (msg.type !== MessageTypes.TEXT) return;
-
-        GROUP_IDS.forEach(async group_id => {
-            if (group_id !== `${chat.id.user}@${chat.id.server}`) {
-                const msg_out = await client.sendMessage(
-                    `${group_id}`,
-                    `${userName} (${chatName}):\n${msg.body}`
-                );
-                loggerMsg.info(`To "${userName}": ${msg_out.body.replace(/(?:\r\n|\r|\n)/g, '\\n')}`);
-            }
-        });
-    });
-
-    client.on("message_revoke_everyone", async (after, before) => {
-        // Fired whenever a message is deleted by anyone (including you)
-        logger.debug(after); // message after it was deleted.
-        if (before) {
-            logger.debug(before); // message before it was deleted.
-        }
-    });
-
     client.on("group_join", (notification) => {
     });
 
@@ -84,6 +98,12 @@ function clientAddEvents(client) {
     client.on("change_state", state => {
     });
 
+    client.on("disconnected", (reason) => {
+        Logger.error(`Client was logged out! Reason: ${reason}`);
+    });
+}
+
+function _clientRegisterCallReject(client) {
     client.on("call", async (call) => {
         logger.info(
             `Call received from: ${call.from}, type: ${call.isGroup ? "group" : ""} ${call.isVideo ? "video" : "audio"}`
@@ -96,14 +116,83 @@ function clientAddEvents(client) {
             "Sorry, but your call was automatically rejected."
         )
     });
+}
 
-    client.on("disconnected", (reason) => {
-        Logger.error(`Client was logged out! Reason: ${reason}`);
-    });    
+function _clientRegisterExtendedGroups(client) {
+    client.on("message", async msg => {
+        const chat = await msg.getChat();
+        const userName = (await msg.getContact()).pushname;
+
+        loggerMsg.info(`From "${userName}" in "${chat.name}": ${msg.body} (${msg.type})`);
+        await chat.sendSeen();
+
+        if (!GROUP_IDS.includes(`${chat.id.user}@${chat.id.server}`)) return;
+        if (!ALLOWED_MEDIA_TYPES.includes(msg.type)) return;
+
+        var msgOptions = {};
+
+        if (msg.hasMedia) {
+            msgOptions.media = await msg.downloadMedia();
+            if (msgOptions.media.mimetype.includes("video") ||
+                msgOptions.media.mimetype.includes("document"))
+                msgOptions.sendMediaAsDocument = true;
+        }
+
+        var msgSend = [];
+        for (const group_id of GROUP_IDS) {
+            if (group_id === `${chat.id.user}@${chat.id.server}`) continue;
+            if (msg.hasQuotedMsg) {
+                const quotedMsgs = findMsgs(msgHistory, await msg.getQuotedMessage());
+                for (const quotedMsg of quotedMsgs) {
+                    if ((quotedMsg.to !== group_id && quotedMsg.fromMe) ||
+                        (quotedMsg.from !== group_id && !quotedMsg.fromMe))
+                        continue;
+
+                    msgOptions.quotedMessageId = quotedMsg.id._serialized;
+                }
+            }
+
+            const msgOut = await client.sendMessage(
+                `${group_id}`,
+                `${userName} (${chat.name}):\n${msg.body}`,
+                msgOptions
+            );
+            loggerMsg.info(`To "${chat.name}": ${msgOut.body.replace(/(?:\r\n|\r|\n)/g, '\\n')}`);
+            msgSend.push(msgOut);
+        }
+
+        msgSend.push(msg);
+        msgHistory.unshift(msgSend);
+
+    });
+
+    client.on("message_revoke_everyone", async (after, before) => {
+        if (after.fromMe) return;
+
+        loggerMsg.info();
+        if (before) {
+            const delMsgs = findMsgs(msgHistory, before);
+            if (!delMsgs) return;
+            msgHistory.splice(msgHistory.indexOf(delMsgs), 1);
+
+            for (const msg of delMsgs) {
+                if (getMsgHash(msg) === getMsgHash(before)) continue;
+                await msg.delete(true);
+            }
+        }
+    });
+}
+
+function clientReloadEvents(client) {
+    logger.info("Reloading Client Events...");
+
+    client.removeAllListeners();
+    clientRegisterEvents(client);
 }
 
 module.exports = {
-    clientAddEvents,
+    clientRegisterEvents,
+    clientReloadEvents,
 }
 
 /**
