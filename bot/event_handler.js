@@ -32,13 +32,15 @@ function getMsgHash(msg, salt = "") {
 }
 
 function findMsgs(msgHistory, msg) {
-    for (let i = 0; i < msgHistory.length; i++) {
-        for (let j = 0; j < msgHistory[i].length; j++) {
-            if (getMsgHash(msgHistory[i][j]) === getMsgHash(msg)) {
-                return msgHistory[i];
+    try {
+        for (let i = 0; i < msgHistory.length; i++) {
+            for (let j = 0; j < msgHistory[i].length; j++) {
+                if (getMsgHash(msgHistory[i][j]) === getMsgHash(msg)) {
+                    return msgHistory[i];
+                }
             }
         }
-    }
+    } catch (error) { }
 }
 
 function clientRegisterEvents(client) {
@@ -143,18 +145,21 @@ function _clientRegisterExtendedGroups(client) {
             if (group_id === `${chat.id.user}@${chat.id.server}`) continue;
             if (msg.hasQuotedMsg) {
                 const quotedMsgs = findMsgs(msgHistory, await msg.getQuotedMessage());
-                for (const quotedMsg of quotedMsgs) {
-                    if ((quotedMsg.to !== group_id && quotedMsg.fromMe) ||
+                if (quotedMsgs) {
+                    console.log(quotedMsgs);
+                    for (const quotedMsg of quotedMsgs) {
+                        if ((quotedMsg.to !== group_id && quotedMsg.fromMe) ||
                         (quotedMsg.from !== group_id && !quotedMsg.fromMe))
                         continue;
 
-                    msgOptions.quotedMessageId = quotedMsg.id._serialized;
+                        msgOptions.quotedMessageId = quotedMsg.id._serialized;
+                    }
                 }
             }
 
             const msgOut = await client.sendMessage(
                 `${group_id}`,
-                `${userName} (${chat.name}):\n${msg.body}`,
+                `[ ${chat.name} ]\n*${userName}*:\n${msg.body}`,
                 msgOptions
             );
             loggerMsg.info(`To "${chat.name}": ${msgOut.body.replace(/(?:\r\n|\r|\n)/g, '\\n')}`);
@@ -169,7 +174,6 @@ function _clientRegisterExtendedGroups(client) {
     client.on("message_revoke_everyone", async (after, before) => {
         if (after.fromMe) return;
 
-        loggerMsg.info();
         if (before) {
             const delMsgs = findMsgs(msgHistory, before);
             if (!delMsgs) return;
@@ -179,6 +183,7 @@ function _clientRegisterExtendedGroups(client) {
                 if (getMsgHash(msg) === getMsgHash(before)) continue;
                 await msg.delete(true);
             }
+            loggerMsg.info(`Deleted from ${before.author}: ${before.body.replace(/(?:\r\n|\r|\n)/g, '\\n')}`);
         }
     });
 }
