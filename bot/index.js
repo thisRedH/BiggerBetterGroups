@@ -1,7 +1,13 @@
 // Licensing information can be found at the end of this file.
 
-const { Client, LocalAuth, MessageTypes } = require("whatsapp-web.js");
-const { clientAddEvents } = require("./event_handler.js");
+const fs = require('fs');
+const path = require('path');
+
+const { Client, LocalAuth } = require("whatsapp-web.js");
+
+const { reloadModule } = require("./debug.js");
+const { Logger } = require("./logger.js");
+const { clientRegisterEvents, clientReloadEvents } = require("./event_handler.js");
 
 logger.info("Starting...");
 
@@ -15,7 +21,31 @@ const client = new Client({
 logger.info("Warming up, this might take between 30 seconds to 2 minutes.");
 
 client.initialize();
-clientAddEvents(client);
+clientRegisterEvents(client);
+
+/* fs.readdir("./", (err, files) => {
+    const jsFiles = files.filter(file => path.extname(file) === ".js");
+
+    jsFiles.forEach(jsFile => {
+        const filePath = path.join("./", jsFile);
+
+        fs.watchFile(filePath, (curr, prev) => {
+            if (curr.mtime > prev.mtime) {
+                logger.debug(`File ${jsFile} changed, reloading module...`);
+                const { clientRegisterEvents, clientReloadEvents } = reloadModule("./event_handler.js");
+                clientReloadEvents(client);
+            }
+        });
+    });
+});
+ */
+fs.watchFile("./event_handler.js", (curr, prev) => {
+    if (curr.mtime > prev.mtime) {
+        logger.debug("File ./event_handler.js changed");
+        const { clientRegisterEvents, clientReloadEvents } = reloadModule("./event_handler.js");
+        clientReloadEvents(client);
+    }
+});
 
 /**
  * Copyright 2024 Matthias Roth

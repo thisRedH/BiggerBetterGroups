@@ -30,7 +30,7 @@ const rotatingFileGL = new winston.transports.DailyRotateFile({
 });
 
 const loggerGL = winston.createLogger({
-    level: "info",
+    level: "debug",
     transports: [
         new winston.transports.Console({
             format: winston.format.combine(
